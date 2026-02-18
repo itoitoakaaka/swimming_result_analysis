@@ -8,8 +8,12 @@ headers = {
 }
 
 def scrape_tournament_results(tournament_id):
+    """大会IDからリザルトをスクレイピングしCSVに保存する"""
     base_url = f"https://result.swim.or.jp/tournament/{tournament_id}"
     res = requests.get(base_url, headers=headers)
+    if res.status_code != 200:
+        print(f"❌ URLにアクセスできませんでした (Status: {res.status_code})")
+        return None
     soup = BeautifulSoup(res.text, 'html.parser')
 
     data = []
@@ -30,16 +34,11 @@ def scrape_tournament_results(tournament_id):
 
     df = pd.DataFrame(data)
     df.to_csv(f"results_{tournament_id}.csv", index=False)
-    print(f"Saved results_{tournament_id}.csv")
-
-# 例：大会IDを使って複数大会取得
-tournament_ids = ["4025721", "4025709"]  # 実際の大会IDに置き換えてください
-for tid in tournament_ids:
-    scrape_tournament_results(tid)
-    time.sleep(2)  # サーバー負荷対策の待機
+    print(f"✅ Saved results_{tournament_id}.csv")
+    return df
 
 
- import pandas as pd
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -94,22 +93,15 @@ update_rate = merged.groupby("team_new")["improved"].mean().sort_values(ascendin
 update_rate.plot(kind="barh", title="ベスト更新率の高い所属", figsize=(8, 6))
 plt.xlabel("更新率")
 plt.tight_layout()
-plt.show()
+plt.savefig("update_rate.png")
+print("✅ グラフ保存完了: update_rate.png")
 
 
-# app.py
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
 
-st.title("データ分析ダッシュボード")
-
-df = pd.read_csv("results_4025721.csv")
-
-selected_event = st.selectbox("種目を選択", df["event"].unique())
-filtered = df[df["event"] == selected_event]
-
-fig, ax = plt.subplots()
-filtered["time_sec"] = filtered["time"].apply(time_to_sec)
-filtered.boxplot(column="time_sec", by="school_year", ax=ax)
-st.pyplot(fig)
+if __name__ == "__main__":
+    # 大会IDを使って複数大会取得
+    tournament_ids = ["4025721", "4025709"]  # 実際の大会IDに置き換えてください
+    for tid in tournament_ids:
+        scrape_tournament_results(tid)
+        time.sleep(2)  # サーバー負荷対策の待機
+    print("\n✅ スクレイピング完了")
